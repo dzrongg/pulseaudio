@@ -22,6 +22,8 @@
 /* TODO: Some plugins cause latency, and some even report it by using a control
    out port. We don't currently use the latency information. */
 
+#define PA_LOG_CATEGORY_DEFAULT "module-ladspa-sink"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

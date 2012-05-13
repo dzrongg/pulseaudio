@@ -19,6 +19,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "module-position-event-sounds"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

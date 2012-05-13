@@ -216,6 +216,7 @@ struct pa_source_output {
 };
 
 PA_DECLARE_PUBLIC_CLASS(pa_source_output);
+
 #define PA_SOURCE_OUTPUT(o) pa_source_output_cast(o)
 
 enum {

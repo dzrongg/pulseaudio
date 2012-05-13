@@ -31,6 +31,11 @@
 
 /* A simple logging subsystem */
 
+typedef struct pa_log_category pa_log_category_t;
+
+#define PA_LOG_CATEGORY_CORE "core"
+#define PA_LOG_CATEGORY_PULSE "pulse"
+
 /* Where to log to */
 typedef enum pa_log_target {
     PA_LOG_STDERR,  /* default */
@@ -86,13 +91,15 @@ void pa_log_set_show_backtrace(unsigned nlevels);
 void pa_log_set_skip_backtrace(unsigned nlevels);
 
 void pa_log_level_meta(
+        const char *category,
         pa_log_level_t level,
         const char*file,
         int line,
         const char *func,
-        const char *format, ...) PA_GCC_PRINTF_ATTR(5,6);
+        const char *format, ...) PA_GCC_PRINTF_ATTR(6,7);
 
 void pa_log_levelv_meta(
+        const char *category,
         pa_log_level_t level,
         const char*file,
         int line,
@@ -101,10 +108,12 @@ void pa_log_levelv_meta(
         va_list ap);
 
 void pa_log_level(
+        const char *category,
         pa_log_level_t level,
-        const char *format, ...) PA_GCC_PRINTF_ATTR(2,3);
+        const char *format, ...) PA_GCC_PRINTF_ATTR(3,4);
 
 void pa_log_levelv(
+        const char *category,
         pa_log_level_t level,
         const char *format,
         va_list ap);
@@ -113,12 +122,12 @@ void pa_log_levelv(
 
 /* ISO varargs available */
 
-#define pa_log_debug(...)  pa_log_level_meta(PA_LOG_DEBUG,  __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define pa_log_info(...)   pa_log_level_meta(PA_LOG_INFO,   __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define pa_log_notice(...) pa_log_level_meta(PA_LOG_NOTICE, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define pa_log_warn(...)   pa_log_level_meta(PA_LOG_WARN,   __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define pa_log_error(...)  pa_log_level_meta(PA_LOG_ERROR,  __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define pa_logl(level, ...)  pa_log_level_meta(level,  __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define pa_log_debug(...)  pa_log_level_meta(PA_LOG_CATEGORY_DEFAULT, PA_LOG_DEBUG,  __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define pa_log_info(...)   pa_log_level_meta(PA_LOG_CATEGORY_DEFAULT, PA_LOG_INFO,   __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define pa_log_notice(...) pa_log_level_meta(PA_LOG_CATEGORY_DEFAULT, PA_LOG_NOTICE, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define pa_log_warn(...)   pa_log_level_meta(PA_LOG_CATEGORY_DEFAULT, PA_LOG_WARN,   __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define pa_log_error(...)  pa_log_level_meta(PA_LOG_CATEGORY_DEFAULT, PA_LOG_ERROR,  __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define pa_logl(level, ...)  pa_log_level_meta(PA_LOG_CATEGORY_DEFAULT, level,  __FILE__, __LINE__, __func__, __VA_ARGS__)
 
 #else
 
@@ -126,7 +135,7 @@ void pa_log_levelv(
 PA_GCC_UNUSED static void pa_log_##suffix(const char *format, ...) { \
     va_list ap; \
     va_start(ap, format); \
-    pa_log_levelv_meta(level, NULL, 0, NULL, format, ap); \
+    pa_log_levelv_meta(PA_LOG_CATEGORY_DEFAULT, level, NULL, 0, NULL, format, ap); \
     va_end(ap); \
 }
 

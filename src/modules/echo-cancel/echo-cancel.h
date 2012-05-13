@@ -22,6 +22,8 @@
 #ifndef fooechocancelhfoo
 #define fooechocancelhfoo
 
+#define PA_LOG_CATEGORY_DEFAULT "module-echo-cancel"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

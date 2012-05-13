@@ -20,6 +20,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "module-raop-sink"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

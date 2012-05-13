@@ -20,6 +20,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT PA_LOG_CATEGORY_CORE
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -50,6 +52,9 @@
 #include <pulsecore/once.h>
 #include <pulsecore/ratelimit.h>
 #include <pulsecore/thread.h>
+#include <pulsecore/llist.h>
+#include <pulsecore/mutex.h>
+#include <pulsecore/hashmap.h>
 
 #include "log.h"
 
@@ -63,6 +68,15 @@
 #define ENV_LOG_BACKTRACE "PULSE_LOG_BACKTRACE"
 #define ENV_LOG_BACKTRACE_SKIP "PULSE_LOG_BACKTRACE_SKIP"
 #define ENV_LOG_NO_RATELIMIT "PULSE_LOG_NO_RATE_LIMIT"
+
+struct pa_log_category {
+    pa_log_level_t threshold;
+    const char *name;
+};
+
+static pa_mutex *categories_mutex = NULL;
+static pa_hashmap *categories = NULL;
+static pa_atomic_t categories_initialized = PA_ATOMIC_INIT(0);
 
 static char *ident = NULL; /* in local charset format */
 static pa_log_target_t target = PA_LOG_STDERR, target_override;
@@ -207,10 +221,20 @@ static char* get_backtrace(unsigned show_nframes) {
 
 #endif
 
+static void init_categories(void) {
+    if (!pa_atomic_load(&categories_initialized)) {
+        categories = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+        categories_mutex = pa_mutex_new(TRUE, TRUE);
+        pa_atomic_store(&categories_initialized, (int) 1);
+    }
+}
+
 static void init_defaults(void) {
     PA_ONCE_BEGIN {
 
         const char *e;
+
+        init_categories();
 
         if (!ident) {
             char binary[256];
@@ -265,7 +289,40 @@ static void init_defaults(void) {
     } PA_ONCE_END;
 }
 
+static pa_log_category_t *pa_log_category_create(const char *name)
+{
+    pa_log_category_t *cat = NULL;
+
+    if (!pa_atomic_load(&categories_initialized))
+        return NULL;
+
+    cat = pa_xnew0(pa_log_category_t, 1);
+    cat->threshold = 3;
+    cat->name = pa_xstrdup(name);
+
+    pa_mutex_lock(categories_mutex);
+    pa_hashmap_put(categories, cat->name, cat);
+    pa_mutex_unlock(categories_mutex);
+
+    return cat;
+}
+
+static pa_log_category_t *pa_log_category_get(const char *name)
+{
+    pa_log_category_t *cat = NULL;
+
+    if (!pa_atomic_load(&categories_initialized))
+        return NULL;
+
+    pa_mutex_lock(categories_mutex);
+    cat = pa_hashmap_get(categories, name);
+    pa_mutex_unlock(categories_mutex);
+
+    return cat;
+}
+
 void pa_log_levelv_meta(
+        const char *category_name,
         pa_log_level_t level,
         const char*file,
         int line,
@@ -280,6 +337,7 @@ void pa_log_levelv_meta(
     pa_log_level_t _maximum_level;
     unsigned _show_backtrace;
     pa_log_flags_t _flags;
+    pa_log_category_t *category;
 
     /* We don't use dynamic memory allocation here to minimize the hit
      * in RT threads */
@@ -289,6 +347,16 @@ void pa_log_levelv_meta(
     pa_assert(format);
 
     init_defaults();
+
+    category = pa_log_category_get(category_name);
+    if (!category)
+        category = pa_log_category_create(category_name);
+
+    if (!category)
+        return;
+
+    if (level > category->threshold)
+        return;
 
     _target = target_override_set ? target_override : target;
     _maximum_level = PA_MAX(maximum_level, maximum_level_override);
@@ -438,6 +506,7 @@ void pa_log_levelv_meta(
 }
 
 void pa_log_level_meta(
+        const char *category,
         pa_log_level_t level,
         const char*file,
         int line,
@@ -446,19 +515,19 @@ void pa_log_level_meta(
 
     va_list ap;
     va_start(ap, format);
-    pa_log_levelv_meta(level, file, line, func, format, ap);
+    pa_log_levelv_meta(category, level, file, line, func, format, ap);
     va_end(ap);
 }
 
-void pa_log_levelv(pa_log_level_t level, const char *format, va_list ap) {
-    pa_log_levelv_meta(level, NULL, 0, NULL, format, ap);
+void pa_log_levelv(const char *category, pa_log_level_t level, const char *format, va_list ap) {
+    pa_log_levelv_meta(category, level, NULL, 0, NULL, format, ap);
 }
 
-void pa_log_level(pa_log_level_t level, const char *format, ...) {
+void pa_log_level(const char *category, pa_log_level_t level, const char *format, ...) {
     va_list ap;
 
     va_start(ap, format);
-    pa_log_levelv_meta(level, NULL, 0, NULL, format, ap);
+    pa_log_levelv_meta(category, level, NULL, 0, NULL, format, ap);
     va_end(ap);
 }
 

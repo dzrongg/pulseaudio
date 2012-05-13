@@ -21,6 +21,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT PA_LOG_CATEGORY_CORE
+
 #include "device-port.h"
 #include <pulsecore/card.h>
 

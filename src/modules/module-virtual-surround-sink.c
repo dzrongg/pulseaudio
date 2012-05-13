@@ -21,6 +21,8 @@
     USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "module-virtual-surround-sink"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
