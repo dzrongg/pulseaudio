@@ -20,6 +20,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT PA_LOG_CATEGORY_PULSE
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -35,6 +37,7 @@
 #include <pulsecore/macro.h>
 #include <pulsecore/bitset.h>
 #include <pulsecore/sample-util.h>
+#include <pulsecore/log.h>
 
 #include "channelmap.h"
 

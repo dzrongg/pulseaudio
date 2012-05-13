@@ -23,6 +23,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT PA_LOG_CATEGORY_CORE
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

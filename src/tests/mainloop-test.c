@@ -17,6 +17,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "mainloop-test"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

@@ -20,6 +20,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "module-xenpv-sink"
+
 #include "config.h"
 
 #include <stdlib.h>

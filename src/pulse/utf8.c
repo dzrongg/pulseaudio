@@ -44,6 +44,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#define PA_LOG_CATEGORY_DEFAULT PA_LOG_CATEGORY_PULSE
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

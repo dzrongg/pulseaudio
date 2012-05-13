@@ -20,6 +20,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "module-alsa-util"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -835,7 +837,7 @@ static void alsa_error_handler(const char *file, int line, const char *function,
 
     va_start(ap, fmt);
 
-    pa_log_levelv_meta(PA_LOG_INFO, alsa_file, line, function, fmt, ap);
+    pa_log_levelv_meta(PA_LOG_CATEGORY_DEFAULT, PA_LOG_INFO, alsa_file, line, function, fmt, ap);
 
     va_end(ap);
 

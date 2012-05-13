@@ -19,6 +19,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "utils-pax11publish"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

@@ -19,6 +19,8 @@
   USA.
 ***/
 
+#define PA_LOG_CATEGORY_DEFAULT "module-esound-compat-spawnfd"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

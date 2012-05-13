@@ -1,3 +1,5 @@
+#define PA_LOG_CATEGORY_DEFAULT "hook-list-test"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

@@ -184,6 +184,7 @@ struct pa_core {
 };
 
 PA_DECLARE_PUBLIC_CLASS(pa_core);
+
 #define PA_CORE(o) pa_core_cast(o)
 
 enum {

@@ -56,6 +56,7 @@ struct pa_device_port {
 };
 
 PA_DECLARE_PUBLIC_CLASS(pa_device_port);
+
 #define PA_DEVICE_PORT(s) (pa_device_port_cast(s))
 
 #define PA_DEVICE_PORT_DATA(d) ((void*) ((uint8_t*) d + PA_ALIGN(sizeof(pa_device_port))))
