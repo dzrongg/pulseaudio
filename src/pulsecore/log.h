@@ -151,4 +151,6 @@ LOG_FUNC(error, PA_LOG_ERROR)
 
 pa_bool_t pa_log_ratelimit(pa_log_level_t level);
 
+pa_bool_t pa_log_category_set_level(const char *name, pa_log_level_t level);
+
 #endif

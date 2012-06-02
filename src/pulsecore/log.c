@@ -542,3 +542,19 @@ pa_bool_t pa_log_ratelimit(pa_log_level_t level) {
 
     return pa_ratelimit_test(&ratelimit, level);
 }
+
+pa_bool_t pa_log_category_set_level(const char *name, pa_log_level_t level) {
+    pa_log_category_t *category;
+
+    if (level >= PA_LOG_LEVEL_MAX)
+        return FALSE;
+
+    if (!(category = pa_log_category_get(name)))
+        return FALSE;
+
+    pa_mutex_lock(categories_mutex);
+    category->threshold = level;
+    pa_mutex_unlock(categories_mutex);
+
+    return TRUE;
+}
