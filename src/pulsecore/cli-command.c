@@ -130,6 +130,8 @@ static int pa_cli_command_log_level(pa_core *c, pa_tokenizer *t, pa_strbuf *buf,
 static int pa_cli_command_log_meta(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
 static int pa_cli_command_log_time(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
 static int pa_cli_command_log_backtrace(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
+static int pa_cli_command_hide_category(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
+static int pa_cli_command_set_category_level(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
 static int pa_cli_command_update_sink_proplist(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
 static int pa_cli_command_update_source_proplist(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
 static int pa_cli_command_update_sink_input_proplist(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail);
@@ -193,6 +195,8 @@ static const struct command commands[] = {
     { "set-log-meta",            pa_cli_command_log_meta,           "Show source code location in log messages (args: bool)", 2},
     { "set-log-time",            pa_cli_command_log_time,           "Show timestamps in log messages (args: bool)", 2},
     { "set-log-backtrace",       pa_cli_command_log_backtrace,      "Show backtrace in log messages (args: frames)", 2},
+    { "hide-category",           pa_cli_command_hide_category,      "Hide all the logs from the corresponding category (args: category)", 2},
+    { "set-category-level",      pa_cli_command_set_category_level, "Change the category's log level (args: category level)", 3},
     { "play-file",               pa_cli_command_play_file,          "Play a sound file (args: filename, sink|index)", 3},
     { "dump",                    pa_cli_command_dump,               "Dump daemon configuration", 1},
     { "dump-volumes",            pa_cli_command_dump_volumes,       "Debug: Show the state of all volumes", 1 },
@@ -1625,6 +1629,60 @@ static int pa_cli_command_log_backtrace(pa_core *c, pa_tokenizer *t, pa_strbuf *
     }
 
     pa_log_set_show_backtrace(nframes);
+
+    return 0;
+}
+
+static int pa_cli_command_hide_category(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail) {
+    const char *category_name;
+
+    pa_core_assert_ref(c);
+    pa_assert(t);
+    pa_assert(buf);
+    pa_assert(fail);
+
+    if (!(category_name = pa_tokenizer_get(t, 1))) {
+        pa_strbuf_puts(buf, "You need to specify a category name.\n");
+        return -1;
+    }
+
+    if (!pa_log_category_set_level(category_name, (pa_log_level_t) 0)) {
+        pa_strbuf_puts(buf, "Failed to set the corresponding level.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int pa_cli_command_set_category_level(pa_core *c, pa_tokenizer *t, pa_strbuf *buf, pa_bool_t *fail) {
+    const char *category_name;
+    const char *level_string;
+    pa_log_level_t level;
+
+    pa_core_assert_ref(c);
+    pa_assert(t);
+    pa_assert(buf);
+    pa_assert(fail);
+
+    if (!(category_name = pa_tokenizer_get(t, 1))) {
+        pa_strbuf_puts(buf, "You need to specify a category name.\n");
+        return -1;
+    }
+
+    if (!(level_string = pa_tokenizer_get(t, 2))) {
+        pa_strbuf_puts(buf, "You need to specify the level for the category.\n");
+        return -1;
+    }
+
+    if (pa_atou(level_string, &level) < 0 || level >= PA_LOG_LEVEL_MAX) {
+        pa_strbuf_puts(buf, "Failed to parse log level.\n");
+        return -1;
+    }
+
+    if (!pa_log_category_set_level(category_name, level)) {
+        pa_strbuf_puts(buf, "Failed to set the corresponding level.\n");
+        return -1;
+    }
 
     return 0;
 }
