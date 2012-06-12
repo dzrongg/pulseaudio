@@ -633,6 +633,9 @@ pa_operation* pa_context_stat(pa_context *c, pa_stat_info_cb_t cb, void *userdat
 
 /** @} */
 
+typedef void (*pa_log_info_cb_t) (pa_context *c, const char *buffer, void *userdata);
+pa_operation* pa_context_get_log(pa_context *c, pa_log_info_cb_t cb, void *userdata);
+
 /** @{ \name Cached Samples */
 
 /** Stores information about sample cache entries. Please note that this structure

@@ -31,6 +31,9 @@
 #define PA_LLIST_HEAD(t,name)                                           \
     t *name
 
+#define PA_STATIC_LLIST_HEAD(t,name)                                    \
+    static t *name = (t*) NULL;
+
 /* The pointers in the linked list's items. Use this in the item structure */
 #define PA_LLIST_FIELDS(t)                                              \
     t *next, *prev

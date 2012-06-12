@@ -26,6 +26,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include <pulsecore/strbuf.h>
 #include <pulsecore/macro.h>
 #include <pulse/gccmacro.h>
 
@@ -141,5 +142,7 @@ LOG_FUNC(error, PA_LOG_ERROR)
 #define pa_log pa_log_error
 
 pa_bool_t pa_log_ratelimit(pa_log_level_t level);
+
+void pa_log_get_strbuf(pa_strbuf *buf);
 
 #endif

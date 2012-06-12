@@ -206,6 +206,10 @@ const char *pa_thread_get_name(pa_thread *t) {
     return t->name;
 }
 
+int pa_thread_get_tid(pa_thread *t) {
+    return (int)t->id;
+}
+
 void pa_thread_yield(void) {
 #ifdef HAVE_PTHREAD_YIELD
     pthread_yield();

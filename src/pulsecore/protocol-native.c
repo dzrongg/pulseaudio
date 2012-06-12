@@ -262,6 +262,7 @@ static void command_auth(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_ta
 static void command_set_client_name(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
 static void command_lookup(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
 static void command_stat(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
+static void command_get_log(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
 static void command_get_playback_latency(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
 static void command_get_record_latency(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
 static void command_create_upload_stream(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata);
@@ -310,6 +311,7 @@ static const pa_pdispatch_cb_t command_table[PA_COMMAND_MAX] = {
     [PA_COMMAND_LOOKUP_SINK] = command_lookup,
     [PA_COMMAND_LOOKUP_SOURCE] = command_lookup,
     [PA_COMMAND_STAT] = command_stat,
+    [PA_COMMAND_GET_LOG] = command_get_log,
     [PA_COMMAND_GET_PLAYBACK_LATENCY] = command_get_playback_latency,
     [PA_COMMAND_GET_RECORD_LATENCY] = command_get_record_latency,
     [PA_COMMAND_CREATE_UPLOAD_STREAM] = command_create_upload_stream,
@@ -2786,6 +2788,31 @@ static void command_stat(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_ta
     pa_tagstruct_putu32(reply, (uint32_t) pa_atomic_load(&stat->n_accumulated));
     pa_tagstruct_putu32(reply, (uint32_t) pa_atomic_load(&stat->accumulated_size));
     pa_tagstruct_putu32(reply, (uint32_t) pa_scache_total_size(c->protocol->core));
+    pa_pstream_send_tagstruct(c->pstream, reply);
+}
+
+static void command_get_log(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata) {
+    pa_native_connection *c = PA_NATIVE_CONNECTION(userdata);
+    pa_tagstruct *reply;
+    pa_strbuf *strbuf;
+
+    pa_native_connection_assert_ref(c);
+    pa_assert(t);
+
+    if (!pa_tagstruct_eof(t)) {
+        protocol_error(c);
+        return;
+    }
+
+    CHECK_VALIDITY(c->pstream, c->authorized, tag, PA_ERR_ACCESS);
+
+    reply = reply_new(tag);
+
+    strbuf = pa_strbuf_new();
+    pa_log_get_strbuf(strbuf);
+    pa_tagstruct_put_strbuf(reply, strbuf);
+    pa_strbuf_free(strbuf);
+
     pa_pstream_send_tagstruct(c->pstream, reply);
 }
 
