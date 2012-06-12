@@ -97,6 +97,7 @@ static enum {
     NONE,
     EXIT,
     STAT,
+    LOG,
     INFO,
     UPLOAD_SAMPLE,
     PLAY_SAMPLE,
@@ -166,6 +167,12 @@ static void stat_callback(pa_context *c, const pa_stat_info *i, void *userdata) 
     pa_bytes_snprint(s, sizeof(s), i->scache_size);
     printf(_("Sample cache size: %s\n"), s);
 
+    complete_action();
+}
+
+static void get_log_callback(pa_context *c, const char *buf, void *userdata) {
+    if (buf != NULL)
+        printf("%s\n", buf);
     complete_action();
 }
 
@@ -1121,6 +1128,10 @@ static void context_state_callback(pa_context *c, void *userdata) {
                         break;
                     actions++;
 
+                case LOG:
+                    pa_operation_unref(pa_context_get_log(c, get_log_callback, NULL));
+                    break;
+
                 case INFO:
                     pa_operation_unref(pa_context_get_server_info(c, get_server_info_callback, NULL));
                     break;
@@ -1385,6 +1396,7 @@ static int parse_volume(const char *vol_spec, pa_volume_t *vol, enum volume_flag
 static void help(const char *argv0) {
 
     printf("%s %s %s\n",    argv0, _("[options]"), "stat [short]");
+    printf("%s %s %s\n",    argv0, _("[options]"), "log");
     printf("%s %s %s\n",    argv0, _("[options]"), "info");
     printf("%s %s %s %s\n", argv0, _("[options]"), "list [short]", _("[TYPE]"));
     printf("%s %s %s\n",    argv0, _("[options]"), "exit");
@@ -1486,6 +1498,9 @@ int main(int argc, char *argv[]) {
             short_list_format = FALSE;
             if (optind+1 < argc && pa_streq(argv[optind+1], "short"))
                 short_list_format = TRUE;
+
+        } else if (pa_streq(argv[optind], "log")) {
+            action = LOG;
 
         } else if (pa_streq(argv[optind], "info"))
             action = INFO;

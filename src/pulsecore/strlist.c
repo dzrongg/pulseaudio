@@ -29,7 +29,6 @@
 
 #include <pulse/xmalloc.h>
 
-#include <pulsecore/strbuf.h>
 #include <pulsecore/macro.h>
 #include <pulsecore/core-util.h>
 

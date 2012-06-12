@@ -321,6 +321,117 @@ static pa_log_category_t *pa_log_category_get(const char *name)
     return cat;
 }
 
+#define PA_LOG_SLOTS 200
+#define PA_LOG_SLOT_LENGTH 512
+
+static inline int next_slot(int nr) {
+    nr++;
+    if (nr >= PA_LOG_SLOTS)
+        nr = 0;
+    return nr;
+}
+
+static inline int prev_slot(int nr) {
+    nr--;
+    if (nr < 0)
+        nr = PA_LOG_SLOTS - 1;
+    return nr;
+}
+
+struct log_slot {
+    PA_LLIST_FIELDS(struct log_slot);
+
+    pthread_t tid;
+
+    int last_slot;
+
+    char slots[PA_LOG_SLOTS][PA_LOG_SLOT_LENGTH];
+    pa_usec_t timestamps[PA_LOG_SLOTS];
+
+    int loop_iter;      /* this field is used for log reading only */
+};
+
+PA_STATIC_LLIST_HEAD(struct log_slot, log_slots);
+static pa_static_mutex log_slots_mutex = PA_STATIC_MUTEX_INIT;
+
+static struct log_slot *get_current_thread_log_slots(void) {
+    pa_mutex *mutex;
+    pthread_t tid;
+    struct log_slot *slot, *new;
+
+    tid = pa_thread_get_tid(pa_thread_self());
+
+    mutex = pa_static_mutex_get(&log_slots_mutex, TRUE, TRUE);
+    pa_mutex_lock(mutex);
+    if (!log_slots) {
+        log_slots = pa_xnew0(struct log_slot, 1);
+        log_slots->tid = tid;
+        log_slots->last_slot = 0;
+        PA_LLIST_INIT(struct log_slot, log_slots);
+
+        pa_mutex_unlock(mutex);
+
+        return log_slots;
+    }
+
+    /* search for matching tid */
+    PA_LLIST_FOREACH(slot, log_slots) {
+        if (slot->tid == tid) {
+            pa_mutex_unlock(mutex);
+            return slot;
+        }
+    }
+
+    /* if not found, create new item */
+    new = pa_xnew0(struct log_slot, 1);
+    new->tid = tid;
+    new->last_slot = 0;
+
+    PA_LLIST_PREPEND(struct log_slot, log_slots, new);
+
+    pa_mutex_unlock(mutex);
+
+    return new;
+}
+
+void pa_log_get_strbuf(pa_strbuf *buf) {
+    pa_mutex *mutex;
+    struct log_slot *slot;
+    int i = 0;
+
+    mutex = pa_static_mutex_get(&log_slots_mutex, TRUE, TRUE);
+    pa_mutex_lock(mutex);
+
+    /* setup iterators */
+    PA_LLIST_FOREACH(slot, log_slots) {
+        slot->loop_iter = prev_slot(slot->last_slot);
+    }
+
+    /* extract at most PA_LOG_SLOTS logs */
+    while (i < PA_LOG_SLOTS) {
+        struct log_slot *max_slot = NULL;
+        pa_usec_t max_ts = 0;
+
+        PA_LLIST_FOREACH(slot, log_slots) {
+            pa_usec_t ts = slot->timestamps[slot->loop_iter];
+            if (ts > max_ts) {
+                max_ts = ts;
+                max_slot = slot;
+            }
+        }
+
+        if (!max_slot)
+            break;
+
+        pa_strbuf_puts(buf, max_slot->slots[max_slot->loop_iter]);
+        max_slot->loop_iter = prev_slot(max_slot->loop_iter);
+
+        i++;
+    }
+
+    pa_mutex_unlock(mutex);
+}
+
 void pa_log_levelv_meta(
         const char *category_name,
         pa_log_level_t level,
@@ -338,6 +449,8 @@ void pa_log_levelv_meta(
     unsigned _show_backtrace;
     pa_log_flags_t _flags;
     pa_log_category_t *category;
+    pa_usec_t ts = 0;
+    struct log_slot *slot = NULL;
 
     /* We don't use dynamic memory allocation here to minimize the hit
      * in RT threads */
@@ -363,10 +476,8 @@ void pa_log_levelv_meta(
     _show_backtrace = PA_MAX(show_backtrace, show_backtrace_override);
     _flags = flags | flags_override;
 
-    if (PA_LIKELY(level > _maximum_level)) {
-        errno = saved_errno;
-        return;
-    }
+    ts = pa_rtclock_now();
+    slot = get_current_thread_log_slots();
 
     pa_vsnprintf(text, sizeof(text), format, ap);
 
@@ -422,82 +533,99 @@ void pa_log_levelv_meta(
         if (t[strspn(t, "\t ")] == 0)
             continue;
 
-        switch (_target) {
-
-            case PA_LOG_STDERR: {
-                const char *prefix = "", *suffix = "", *grey = "";
-                char *local_t;
+        if (level <= _maximum_level) {
+            switch (_target) {
+                case PA_LOG_STDERR: {
+                    const char *prefix = "", *suffix = "", *grey = "";
+                    char *local_t;
 
 #ifndef OS_IS_WIN32
-                /* Yes indeed. Useless, but fun! */
-                if ((_flags & PA_LOG_COLORS) && isatty(STDERR_FILENO)) {
-                    if (level <= PA_LOG_ERROR)
-                        prefix = "\x1B[1;31m";
-                    else if (level <= PA_LOG_WARN)
-                        prefix = "\x1B[1m";
+                    /* Yes indeed. Useless, but fun! */
+                    if ((_flags & PA_LOG_COLORS) && isatty(STDERR_FILENO)) {
+                        if (level <= PA_LOG_ERROR)
+                            prefix = "\x1B[1;31m";
+                        else if (level <= PA_LOG_WARN)
+                            prefix = "\x1B[1m";
 
-                    if (bt)
-                        grey = "\x1B[2m";
+                        if (bt)
+                            grey = "\x1B[2m";
 
-                    if (grey[0] || prefix[0])
-                        suffix = "\x1B[0m";
-                }
+                        if (grey[0] || prefix[0])
+                            suffix = "\x1B[0m";
+                    }
 #endif
 
-                /* We shouldn't be using dynamic allocation here to
-                 * minimize the hit in RT threads */
-                if ((local_t = pa_utf8_to_locale(t)))
-                    t = local_t;
+                    /* We shouldn't be using dynamic allocation here to
+                     * minimize the hit in RT threads */
+                    if ((local_t = pa_utf8_to_locale(t)))
+                        t = local_t;
 
-                if (_flags & PA_LOG_PRINT_LEVEL)
-                    fprintf(stderr, "%s%c: %s%s%s%s%s%s\n", timestamp, level_to_char[level], location, prefix, t, grey, pa_strempty(bt), suffix);
-                else
-                    fprintf(stderr, "%s%s%s%s%s%s%s\n", timestamp, location, prefix, t, grey, pa_strempty(bt), suffix);
+                    if (_flags & PA_LOG_PRINT_LEVEL)
+                        fprintf(stderr, "%s%c: %s%s%s%s%s%s\n", timestamp, level_to_char[level], location, prefix, t, grey, pa_strempty(bt), suffix);
+                    else
+                        fprintf(stderr, "%s%s%s%s%s%s%s\n", timestamp, location, prefix, t, grey, pa_strempty(bt), suffix);
 #ifdef OS_IS_WIN32
-                fflush(stderr);
+                    fflush(stderr);
 #endif
 
-                pa_xfree(local_t);
+                    pa_xfree(local_t);
 
-                break;
-            }
+                    break;
+                }
 
 #ifdef HAVE_SYSLOG_H
-            case PA_LOG_SYSLOG: {
-                char *local_t;
+                case PA_LOG_SYSLOG: {
+                    char *local_t;
 
-                openlog(ident, LOG_PID, LOG_USER);
+                    openlog(ident, LOG_PID, LOG_USER);
 
-                if ((local_t = pa_utf8_to_locale(t)))
-                    t = local_t;
+                    if ((local_t = pa_utf8_to_locale(t)))
+                        t = local_t;
 
-                syslog(level_to_syslog[level], "%s%s%s%s", timestamp, location, t, pa_strempty(bt));
-                pa_xfree(local_t);
+                    syslog(level_to_syslog[level], "%s%s%s%s", timestamp, location, t, pa_strempty(bt));
+                    pa_xfree(local_t);
 
-                break;
-            }
+                    break;
+                }
 #endif
 
-            case PA_LOG_FD: {
-                if (log_fd >= 0) {
-                    char metadata[256];
+                case PA_LOG_FD: {
+                    if (log_fd >= 0) {
+                        char metadata[256];
 
-                    pa_snprintf(metadata, sizeof(metadata), "\n%c %s %s", level_to_char[level], timestamp, location);
+                        pa_snprintf(metadata, sizeof(metadata), "\n%c %s %s", level_to_char[level], timestamp, location);
 
-                    if ((write(log_fd, metadata, strlen(metadata)) < 0) || (write(log_fd, t, strlen(t)) < 0)) {
-                        saved_errno = errno;
-                        pa_log_set_fd(-1);
-                        fprintf(stderr, "%s\n", "Error writing logs to a file descriptor. Redirect log messages to console.");
-                        fprintf(stderr, "%s %s\n", metadata, t);
-                        pa_log_set_target(PA_LOG_STDERR);
+                        if ((write(log_fd, metadata, strlen(metadata)) < 0) || (write(log_fd, t, strlen(t)) < 0)) {
+                            saved_errno = errno;
+                            pa_log_set_fd(-1);
+                            fprintf(stderr, "%s\n", "Error writing logs to a file descriptor. Redirect log messages to console.");
+                            fprintf(stderr, "%s %s\n", metadata, t);
+                            pa_log_set_target(PA_LOG_STDERR);
+                        }
                     }
-                }
 
-                break;
+                    break;
+                }
+                case PA_LOG_NULL:
+                default:
+                    break;
             }
-            case PA_LOG_NULL:
-            default:
-                break;
+        }
+
+        /* log all data to our ring buffer log */
+        {
+            char *buffer;
+
+            slot->last_slot = next_slot(slot->last_slot);
+
+            slot->timestamps[slot->last_slot] = ts;
+
+            buffer = slot->slots[slot->last_slot];
+
+            if (_flags & PA_LOG_PRINT_LEVEL)
+                pa_snprintf(buffer, PA_LOG_SLOT_LENGTH, "%s%c: %s%s%s\n", timestamp, level_to_char[level], location, t, pa_strempty(bt));
+            else
+                pa_snprintf(buffer, PA_LOG_SLOT_LENGTH, "%s%s%s%s\n", timestamp, location, t, pa_strempty(bt));
         }
     }
 

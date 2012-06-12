@@ -33,6 +33,7 @@
 #include <pulse/proplist.h>
 
 #include <pulsecore/macro.h>
+#include <pulsecore/strbuf.h>
 
 typedef struct pa_tagstruct pa_tagstruct;
 
@@ -71,6 +72,7 @@ const uint8_t* pa_tagstruct_data(pa_tagstruct*t, size_t *l);
 
 void pa_tagstruct_put(pa_tagstruct *t, ...);
 
+void pa_tagstruct_put_strbuf(pa_tagstruct*t, pa_strbuf *s);
 void pa_tagstruct_puts(pa_tagstruct*t, const char *s);
 void pa_tagstruct_putu8(pa_tagstruct*t, uint8_t c);
 void pa_tagstruct_putu32(pa_tagstruct*t, uint32_t i);

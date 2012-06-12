@@ -50,6 +50,8 @@ void pa_thread_set_data(pa_thread *t, void *userdata);
 const char *pa_thread_get_name(pa_thread *t);
 void pa_thread_set_name(pa_thread *t, const char *name);
 
+int pa_thread_get_tid(pa_thread *t);
+
 typedef struct pa_tls pa_tls;
 
 pa_tls* pa_tls_new(pa_free_cb_t free_cb);

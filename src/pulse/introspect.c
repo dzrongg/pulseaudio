@@ -81,6 +81,40 @@ pa_operation* pa_context_stat(pa_context *c, pa_stat_info_cb_t cb, void *userdat
     return pa_context_send_simple_command(c, PA_COMMAND_STAT, context_stat_callback, (pa_operation_cb_t) cb, userdata);
 }
 
+/*** Logs ***/
+static void context_get_log_callback(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata) {
+    pa_operation *o = userdata;
+    const char *p = NULL;
+
+    pa_assert(pd);
+    pa_assert(o);
+    pa_assert(PA_REFCNT_VALUE(o) >= 1);
+
+    if (!o->context)
+        goto finish;
+
+    if (command != PA_COMMAND_REPLY) {
+        if (pa_context_handle_error(o->context, command, t, FALSE) < 0)
+            goto finish;
+    } else if (pa_tagstruct_gets(t, &p) < 0) {
+        pa_context_fail(o->context, PA_ERR_PROTOCOL);
+        goto finish;
+    }
+
+    if (o->callback) {
+        pa_log_info_cb_t cb = (pa_log_info_cb_t) o->callback;
+        cb(o->context, p, o->userdata);
+    }
+
+finish:
+    pa_operation_done(o);
+    pa_operation_unref(o);
+}
+
+pa_operation* pa_context_get_log(pa_context *c, pa_log_info_cb_t cb, void *userdata) {
+    return pa_context_send_simple_command(c, PA_COMMAND_GET_LOG, context_get_log_callback, (pa_operation_cb_t) cb, userdata);
+}
+
 /*** Server Info ***/
 
 static void context_get_server_info_callback(pa_pdispatch *pd, uint32_t command, uint32_t tag, pa_tagstruct *t, void *userdata) {

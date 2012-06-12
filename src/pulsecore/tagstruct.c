@@ -97,6 +97,12 @@ static void extend(pa_tagstruct*t, size_t l) {
     t->data = pa_xrealloc(t->data, t->allocated = t->length+l+100);
 }
 
+void pa_tagstruct_put_strbuf(pa_tagstruct*t, pa_strbuf *s) {
+    char *buf = pa_strbuf_tostring(s);
+    pa_tagstruct_puts(t, buf);
+    pa_xfree(buf);
+}
+
 void pa_tagstruct_puts(pa_tagstruct*t, const char *s) {
     size_t l;
     pa_assert(t);
