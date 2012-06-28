@@ -248,6 +248,11 @@ USA.
 
   <section name="Log Commands">
     <option>
+      <p><opt>set-log-target</opt> <arg>target</arg></p>
+      <optdesc><p>Change the log target.</p></optdesc>
+    </option>
+
+    <option>
       <p><opt>set-log-level</opt> <arg>numeric-level</arg></p>
       <optdesc><p>Change the log level.</p></optdesc>
     </option>
