@@ -176,6 +176,8 @@ void pa_daemon_conf_free(pa_daemon_conf *c) {
     pa_xfree(c);
 }
 
+#define PA_LOG_MAX_SUFFIX_NUMBER 100
+
 int pa_daemon_conf_set_log_target(pa_daemon_conf *c, const char *string) {
     pa_assert(c);
     pa_assert(string);
@@ -188,11 +190,35 @@ int pa_daemon_conf_set_log_target(pa_daemon_conf *c, const char *string) {
     } else if (pa_streq(string, "stderr")) {
         c->auto_log_target = 0;
         c->log_target = PA_LOG_STDERR;
-    } else if (pa_startswith(string, "file:")) {
+    } else if (pa_startswith(string, "file:") || pa_startswith(string, "newfile:")) {
         char file_path[512];
         int log_fd;
 
-        pa_strlcpy(file_path, string + 5, sizeof(file_path));
+        if (pa_startswith(string, "newfile:")) {
+            struct stat s;
+
+            pa_strlcpy(file_path, string + 8, sizeof(file_path));
+
+            if (stat(file_path, &s) == 0) {
+                int version = 1;
+                int left_size = sizeof(file_path) - strlen(file_path);
+                char *p = file_path + strlen(file_path);
+
+                do {
+                    memset(p, 0, left_size);
+                    pa_snprintf(p, left_size, ".%d", version);
+                    if (++version == PA_LOG_MAX_SUFFIX_NUMBER)
+                        break;
+                } while (stat(file_path, &s) == 0);
+
+                if (version == PA_LOG_MAX_SUFFIX_NUMBER) {
+                    /* we just overwrite the original specified file name */
+                    memset(p, 0, left_size);
+                } else
+                    printf("Trying to create log target file %s instead!\n", file_path);
+            }
+        } else
+            pa_strlcpy(file_path, string + 5, sizeof(file_path));
 
         /* Open target file with user rights */
         if ((log_fd = open(file_path, O_RDWR|O_TRUNC|O_CREAT, S_IRUSR | S_IWUSR)) >= 0) {
