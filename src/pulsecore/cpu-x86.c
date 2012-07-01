@@ -44,7 +44,7 @@ static void get_cpuid(uint32_t op, uint32_t *a, uint32_t *b, uint32_t *c, uint32
 }
 #endif
 
-pa_bool_t pa_cpu_init_x86(pa_cpu_x86_flag_t *flags) {
+void pa_cpu_get_x86_flags(pa_cpu_x86_flag_t *flags) {
 #if defined (__i386__) || defined (__amd64__)
     uint32_t eax, ebx, ecx, edx;
     uint32_t level;
@@ -98,6 +98,13 @@ pa_bool_t pa_cpu_init_x86(pa_cpu_x86_flag_t *flags) {
         if (edx & (1<<31))
           *flags |= PA_CPU_X86_3DNOW;
     }
+#endif
+}
+
+pa_bool_t pa_cpu_init_x86(pa_cpu_x86_flag_t *flags) {
+    pa_cpu_get_x86_flags(flags);
+
+#if defined (__i386__) || defined (__amd64__)
 
     pa_log_info("CPU flags: %s%s%s%s%s%s%s%s%s%s%s",
     (*flags & PA_CPU_X86_CMOV) ? "CMOV " : "",
