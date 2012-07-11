@@ -71,5 +71,6 @@ void pa_convert_func_init_sse (pa_cpu_x86_flag_t flags);
 
 void sconv_sse_unit_test();
 void svolume_sse_unit_test();
+void svolume_mmx_unit_test();
 
 #endif /* foocpux86hfoo */
