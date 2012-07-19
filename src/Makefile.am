@@ -302,11 +302,11 @@ TESTS = $(TESTS_default)
 if BUILD_TESTS_DEFAULT
 noinst_PROGRAMS = $(TESTS_default) $(TESTS_norun) $(TESTS_daemon)
 else
-check_PROGRAMS = $(TESTS_default) $(TESTS_norun) $(TESTS_daemon)
+check_PROGRAMS = $(TESTS_default) $(TESTS_norun)
 endif
 
 check-daemon:
-	$(MAKE) check TESTS="$(TESTS_daemon)"
+	$(top_builddir)/src/tests/test-daemon.sh
 
 mainloop_test_SOURCES = tests/mainloop-test.c
 mainloop_test_CFLAGS = $(AM_CFLAGS)
