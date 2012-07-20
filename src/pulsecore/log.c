@@ -545,16 +545,35 @@ pa_bool_t pa_log_ratelimit(pa_log_level_t level) {
 
 pa_bool_t pa_log_category_set_level(const char *name, pa_log_level_t level) {
     pa_log_category_t *category;
+    size_t len;
 
     if (level >= PA_LOG_LEVEL_MAX)
         return FALSE;
 
-    if (!(category = pa_log_category_get(name)))
+    len = strlen(name);
+    if (len == 0)
         return FALSE;
 
-    pa_mutex_lock(categories_mutex);
-    category->threshold = level;
-    pa_mutex_unlock(categories_mutex);
+    if (name[len-1] == '*') {
+        void *state;
+        char *prefix = pa_xstrdup(name);
+        prefix[len-1] = '\0';
+
+        pa_mutex_lock(categories_mutex);
+        PA_HASHMAP_FOREACH(category, categories, state)
+            if (pa_startswith(category->name, prefix))
+                category->threshold = level;
+        pa_mutex_unlock(categories_mutex);
+
+        pa_xfree(prefix);
+    } else {
+        if (!(category = pa_log_category_get(name)))
+            return FALSE;
+
+        pa_mutex_lock(categories_mutex);
+        category->threshold = level;
+        pa_mutex_unlock(categories_mutex);
+    }
 
     return TRUE;
 }
