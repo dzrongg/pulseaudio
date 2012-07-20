@@ -2071,4 +2071,9 @@ $(installmodlibexecLTLIBRARIES): install-pkglibLTLIBRARIES
 installpadsplibLTLIBRARIES = install-padsplibLTLIBRARIES
 $(installpadsplibLTLIBRARIES): install-libLTLIBRARIES
 
-.PHONY: massif update-all update-ffmpeg update-sbc update-map-file
+show-coverage:
+	lcov --capture --directory . --output-file all.info
+	rm -rf coverage
+	genhtml --output-directory coverage all.info
+
+.PHONY: massif update-all update-ffmpeg update-sbc update-map-file show-coverage
