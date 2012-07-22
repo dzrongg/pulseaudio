@@ -1102,6 +1102,16 @@ AC_SUBST(GCOV_CFLAGS)
 AC_SUBST(GCOV_LIBS)
 AM_CONDITIONAL([HAVE_GCOV], [test "x$HAVE_GCOV" = x1])
 
+#### ring buffer log support (optional) ####
+
+AC_ARG_ENABLE([ring-buffer],
+    AS_HELP_STRING([--disable-ring-buffer],[Disable optional ring buffer log support]))
+
+AS_IF([test "x$enable_ring_buffer" != "xno"],
+    HAVE_RING_BUFFER=1, HAVE_RING_BUFFER=0)
+
+AS_IF([test "x$HAVE_RING_BUFFER" = "x1"], AC_DEFINE([HAVE_RING_BUFFER], 1, [Have Ring Buffer.]))
+
 #### ORC (optional) ####
 
 ORC_CHECK([0.4.11])

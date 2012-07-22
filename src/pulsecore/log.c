@@ -351,6 +351,7 @@ struct log_slot {
     int loop_iter;      /* this field is used for log reading only */
 };
 
+#if defined(HAVE_RING_BUFFER) && HAVE_RING_BUFFER
 PA_STATIC_LLIST_HEAD(struct log_slot, log_slots);
 static pa_static_mutex log_slots_mutex = PA_STATIC_MUTEX_INIT;
 
@@ -393,8 +394,10 @@ static struct log_slot *get_current_thread_log_slots(void) {
 
     return new;
 }
+#endif
 
 void pa_log_get_strbuf(pa_strbuf *buf) {
+#if defined(HAVE_RING_BUFFER) && HAVE_RING_BUFFER
     pa_mutex *mutex;
     struct log_slot *slot;
     int i = 0;
@@ -430,6 +433,7 @@ void pa_log_get_strbuf(pa_strbuf *buf) {
     }
 
     pa_mutex_unlock(mutex);
+#endif
 }
 
 void pa_log_levelv_meta(
@@ -449,8 +453,10 @@ void pa_log_levelv_meta(
     unsigned _show_backtrace;
     pa_log_flags_t _flags;
     pa_log_category_t *category;
+#if defined(HAVE_RING_BUFFER) && HAVE_RING_BUFFER
     pa_usec_t ts = 0;
     struct log_slot *slot = NULL;
+#endif
 
     /* We don't use dynamic memory allocation here to minimize the hit
      * in RT threads */
@@ -476,8 +482,10 @@ void pa_log_levelv_meta(
     _show_backtrace = PA_MAX(show_backtrace, show_backtrace_override);
     _flags = flags | flags_override;
 
+#if defined(HAVE_RING_BUFFER) && HAVE_RING_BUFFER
     ts = pa_rtclock_now();
     slot = get_current_thread_log_slots();
+#endif
 
     pa_vsnprintf(text, sizeof(text), format, ap);
 
@@ -612,6 +620,7 @@ void pa_log_levelv_meta(
             }
         }
 
+#if defined(HAVE_RING_BUFFER) && HAVE_RING_BUFFER
         /* log all data to our ring buffer log */
         {
             char *buffer;
@@ -627,6 +636,7 @@ void pa_log_levelv_meta(
             else
                 pa_snprintf(buffer, PA_LOG_SLOT_LENGTH, "%s%s%s%s\n", timestamp, location, t, pa_strempty(bt));
         }
+#endif
     }
 
     pa_xfree(bt);
