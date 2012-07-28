@@ -21,18 +21,24 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 
+#include <check.h>
+
 #include <pulse/simple.h>
 #include <pulse/error.h>
 
 #define BUFSIZE 1024
 
-int main(int argc, char*argv[]) {
+static const char *binary;
+static const char *fname;
+
+START_TEST (pacatsimple_test) {
 
     /* The Sample format to use */
     static const pa_sample_spec ss = {
@@ -46,10 +52,10 @@ int main(int argc, char*argv[]) {
     int error;
 
     /* replace STDIN with the specified file if needed */
-    if (argc > 1) {
+    if (fname) {
         int fd;
 
-        if ((fd = open(argv[1], O_RDONLY)) < 0) {
+        if ((fd = open(fname, O_RDONLY)) < 0) {
             fprintf(stderr, __FILE__": open() failed: %s\n", strerror(errno));
             goto finish;
         }
@@ -63,7 +69,7 @@ int main(int argc, char*argv[]) {
     }
 
     /* Create a new playback stream */
-    if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &error))) {
+    if (!(s = pa_simple_new(NULL, binary, PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &error))) {
         fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
         goto finish;
     }
@@ -112,5 +118,29 @@ finish:
     if (s)
         pa_simple_free(s);
 
-    return ret;
+    fail_unless(ret == 0);
+}
+END_TEST
+
+int main(int argc, char *argv[]) {
+    int failed = 0;
+    Suite *s;
+    TCase *tc;
+    SRunner *sr;
+
+    binary = argv[0];
+    if (argc > 1)
+        fname = argv[1];
+
+    s = suite_create("Pacat Simple");
+    tc = tcase_create("pacatsimple");
+    tcase_add_test(tc, pacatsimple_test);
+    suite_add_tcase(s, tc);
+
+    sr = srunner_create(s);
+    srunner_run_all(sr, CK_NORMAL);
+    failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
