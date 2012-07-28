@@ -491,8 +491,8 @@ cpu_test_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS) $(LIBCHECK_LIBS)
 
 rtstutter_SOURCES = tests/rtstutter.c
 rtstutter_LDADD = $(AM_LDADD) libpulsecore-@PA_MAJORMINOR@.la libpulse.la libpulsecommon-@PA_MAJORMINOR@.la
-rtstutter_CFLAGS = $(AM_CFLAGS)
-rtstutter_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS)
+rtstutter_CFLAGS = $(AM_CFLAGS) $(LIBCHECK_CFLAGS)
+rtstutter_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS) $(LIBCHECK_LIBS)
 
 stripnul_SOURCES = tests/stripnul.c
 stripnul_LDADD = $(AM_LDADD) libpulsecore-@PA_MAJORMINOR@.la libpulse.la libpulsecommon-@PA_MAJORMINOR@.la

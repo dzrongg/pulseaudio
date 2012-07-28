@@ -28,6 +28,8 @@
 #include <time.h>
 #include <inttypes.h>
 
+#include <check.h>
+
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
 #endif
@@ -58,7 +60,7 @@ static void work(void *p) {
 
     CPU_ZERO(&mask);
     CPU_SET((size_t) PA_PTR_TO_UINT(p), &mask);
-    pa_assert_se(pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask) == 0);
+    fail_unless(pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask) == 0);
 }
 #endif
 
@@ -84,12 +86,32 @@ static void work(void *p) {
     }
 }
 
-int main(int argc, char*argv[]) {
+START_TEST (rtstutter_test) {
     unsigned n;
 
     pa_log_set_level(PA_LOG_INFO);
 
     srand((unsigned) time(NULL));
+
+    fail_unless(msec_upper > 0);
+    fail_unless(msec_upper >= msec_lower);
+
+    pa_log_notice("Creating random latencies in the range of %ims to %ims.", msec_lower, msec_upper);
+
+    for (n = 1; n < pa_ncpus(); n++) {
+        pa_thread *p = pa_thread_new("rtstutter", work, PA_UINT_TO_PTR(n));
+        fail_unless(p != NULL);
+    }
+
+    work(PA_INT_TO_PTR(0));
+}
+END_TEST
+
+int main(int argc, char *argv[]) {
+    int failed = 0;
+    Suite *s;
+    TCase *tc;
+    SRunner *sr;
 
     if (argc >= 3) {
         msec_lower = atoi(argv[1]);
@@ -102,16 +124,15 @@ int main(int argc, char*argv[]) {
         msec_upper = 1000;
     }
 
-    pa_assert(msec_upper > 0);
-    pa_assert(msec_upper >= msec_lower);
+    s = suite_create("Rtstutter");
+    tc = tcase_create("rtstutter");
+    tcase_add_test(tc, rtstutter_test);
+    suite_add_tcase(s, tc);
 
-    pa_log_notice("Creating random latencies in the range of %ims to %ims.", msec_lower, msec_upper);
+    sr = srunner_create(s);
+    srunner_run_all(sr, CK_NORMAL);
+    failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
 
-    for (n = 1; n < pa_ncpus(); n++) {
-        pa_assert_se(pa_thread_new("rtstutter", work, PA_UINT_TO_PTR(n)));
-    }
-
-    work(PA_INT_TO_PTR(0));
-
-    return 0;
+    return (failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
