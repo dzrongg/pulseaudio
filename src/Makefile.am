@@ -396,8 +396,8 @@ pacat_simple_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS) $(LIBCHECK_LIBS)
 
 parec_simple_SOURCES = tests/parec-simple.c
 parec_simple_LDADD = $(AM_LDADD) libpulse.la libpulse-simple.la
-parec_simple_CFLAGS = $(AM_CFLAGS)
-parec_simple_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS)
+parec_simple_CFLAGS = $(AM_CFLAGS) $(LIBCHECK_CFLAGS)
+parec_simple_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS) $(LIBCHECK_LIBS)
 
 extended_test_SOURCES = tests/extended-test.c
 extended_test_LDADD = $(AM_LDADD) libpulse.la
