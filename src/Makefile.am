@@ -496,8 +496,8 @@ rtstutter_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS)
 
 stripnul_SOURCES = tests/stripnul.c
 stripnul_LDADD = $(AM_LDADD) libpulsecore-@PA_MAJORMINOR@.la libpulse.la libpulsecommon-@PA_MAJORMINOR@.la
-stripnul_CFLAGS = $(AM_CFLAGS)
-stripnul_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS)
+stripnul_CFLAGS = $(AM_CFLAGS) $(LIBCHECK_CFLAGS)
+stripnul_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS) $(LIBCHECK_LIBS)
 
 lock_autospawn_test_SOURCES = tests/lock-autospawn-test.c
 lock_autospawn_test_LDADD = $(AM_LDADD) libpulsecore-@PA_MAJORMINOR@.la libpulse.la libpulsecommon-@PA_MAJORMINOR@.la
