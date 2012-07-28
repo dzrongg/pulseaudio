@@ -21,15 +21,20 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
+#include <check.h>
+
 #include <pulse/simple.h>
 #include <pulse/error.h>
 
 #define BUFSIZE 1024
+
+static char *binary;
 
 /* A simple routine calling UNIX write() in a loop */
 static ssize_t loop_write(int fd, const void*data, size_t size) {
@@ -52,7 +57,7 @@ static ssize_t loop_write(int fd, const void*data, size_t size) {
     return ret;
 }
 
-int main(int argc, char*argv[]) {
+START_TEST (parec_simple_test) {
     /* The sample type to use */
     static const pa_sample_spec ss = {
         .format = PA_SAMPLE_S16LE,
@@ -64,7 +69,7 @@ int main(int argc, char*argv[]) {
     int error;
 
     /* Create the recording stream */
-    if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
+    if (!(s = pa_simple_new(NULL, binary, PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
         fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
         goto finish;
     }
@@ -92,5 +97,27 @@ finish:
     if (s)
         pa_simple_free(s);
 
-    return ret;
+    fail_unless(ret == 0);
+}
+END_TEST
+
+int main(int argc, char *argv[]) {
+    int failed = 0;
+    Suite *s;
+    TCase *tc;
+    SRunner *sr;
+
+    binary = argv[0];
+
+    s = suite_create("Parec Simple");
+    tc = tcase_create("parecsimple");
+    tcase_add_test(tc, parec_simple_test);
+    suite_add_tcase(s, tc);
+
+    sr = srunner_create(s);
+    srunner_run_all(sr, CK_NORMAL);
+    failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
