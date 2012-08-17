@@ -25,23 +25,19 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include <check.h>
-
 #include <pulse/xmalloc.h>
 #include <pulsecore/macro.h>
 
-static size_t granularity;
-static FILE *i;
-static FILE *o;
-
-START_TEST (stripnul_test) {
+int main(int argc, char *argv[]) {
+    FILE *i, *o;
+    size_t granularity;
     pa_bool_t found = FALSE;
     uint8_t *zero;
 
-    /* pre-check */
-    fail_unless(granularity >= 1);
-    fail_unless(i != NULL);
-    fail_unless(o != NULL);
+    pa_assert_se(argc >= 2);
+    pa_assert_se((granularity = (size_t) atoi(argv[1])) >= 1);
+    pa_assert_se((i = (argc >= 3) ? fopen(argv[2], "r") : stdin));
+    pa_assert_se((o = (argc >= 4) ? fopen(argv[3], "w") : stdout));
 
     zero = pa_xmalloc0(granularity);
 
@@ -55,47 +51,20 @@ START_TEST (stripnul_test) {
             break;
 
         if (found)
-            fail_unless(fwrite(buffer, granularity, k, o) == k);
+            pa_assert_se(fwrite(buffer, granularity, k, o) == k);
         else {
             for (p = buffer; ((size_t) (p-buffer)/granularity) < k; p += granularity)
                 if (memcmp(p, zero, granularity)) {
                     size_t left;
                     found = TRUE;
                     left = (size_t) (k - (size_t) (p-buffer)/granularity);
-                    fail_unless(fwrite(p, granularity, left, o) == left);
+                    pa_assert_se(fwrite(p, granularity, left, o) == left);
                     break;
                 }
         }
     }
 
     fflush(o);
-}
-END_TEST
 
-int main(int argc, char *argv[]) {
-    int failed = 0;
-    Suite *s;
-    TCase *tc;
-    SRunner *sr;
-
-    if (argc < 2) {
-        fprintf(stderr, "need at least one arg to run this test!\n");
-        return EXIT_FAILURE;
-    }
-
-    (granularity = (size_t) atoi(argv[1]));
-    i = (argc >= 3) ? fopen(argv[2], "r") : stdin;
-    o = (argc >= 4) ? fopen(argv[3], "w") : stdout;
-
-    s = suite_create("Stripnul");
-    tc = tcase_create("stripnul");
-    tcase_add_test(tc, stripnul_test);
-    suite_add_tcase(s, tc);
-
-    sr = srunner_create(s);
-    srunner_run_all(sr, CK_NORMAL);
-    failed = srunner_ntests_failed(sr);
-    srunner_free(sr);
-
-    return (failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return 0;
 }
