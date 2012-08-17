@@ -160,7 +160,7 @@ START_TEST (alsa_time_test) {
         r = snd_pcm_status(pcm, status);
         fail_unless(r == 0);
 
-        /* This fail_unlession fails from time to time. ALSA seems to be broken */
+        /* This assertion fails from time to time. ALSA seems to be broken */
 /*         fail_unless(avail == (snd_pcm_sframes_t) snd_pcm_status_get_avail(status)); */
 /*         printf("%lu %lu\n", (unsigned long) avail, (unsigned long) snd_pcm_status_get_avail(status)); */
 
