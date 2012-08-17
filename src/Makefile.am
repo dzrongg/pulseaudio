@@ -391,8 +391,8 @@ mcalign_test_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS)
 
 pacat_simple_SOURCES = tests/pacat-simple.c
 pacat_simple_LDADD = $(AM_LDADD) libpulse.la libpulse-simple.la
-pacat_simple_CFLAGS = $(AM_CFLAGS) $(LIBCHECK_CFLAGS)
-pacat_simple_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS) $(LIBCHECK_LIBS)
+pacat_simple_CFLAGS = $(AM_CFLAGS)
+pacat_simple_LDFLAGS = $(AM_LDFLAGS) $(BINLDFLAGS)
 
 parec_simple_SOURCES = tests/parec-simple.c
 parec_simple_LDADD = $(AM_LDADD) libpulse.la libpulse-simple.la
