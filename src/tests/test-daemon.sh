@@ -44,6 +44,7 @@ pulseaudio -n \
         --load="module-suspend-on-idle" \
         --load="module-native-protocol-unix" \
         --load="module-cli-protocol-unix" \
+        --dl-search-path="$(dirname $0)/.libs/" \
         &
 
 # wait a few seconds to let the daemon start!
