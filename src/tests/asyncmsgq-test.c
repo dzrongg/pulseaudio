@@ -104,9 +104,6 @@ START_TEST (asyncmsgq_test) {
     pa_thread_free(t);
 
     pa_asyncmsgq_unref(q);
-
-    /* succeed when it executes to here */
-    fail_unless(1);
 }
 END_TEST
 
