@@ -208,6 +208,7 @@ int main(int argc, char *argv[]) {
     s = suite_create("Sync Playback");
     tc = tcase_create("syncplayback");
     tcase_add_test(tc, sync_playback_test);
+    tcase_set_timeout(tc, 5 * 60);
     suite_add_tcase(s, tc);
 
     sr = srunner_create(s);
